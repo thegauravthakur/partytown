@@ -1,5 +1,9 @@
 import { createEnvironment } from './worker-environment';
-import { definePrototypePropertyDescriptor, SCRIPT_TYPE } from '../utils';
+import {
+  definePrototypePropertyDescriptor,
+  SCRIPT_TYPE,
+  testIfMustLoadIframeOnMainThread,
+} from '../utils';
 import {
   ABOUT_BLANK,
   environments,
@@ -51,11 +55,23 @@ export const patchHTMLIFrameElement = (WorkerHTMLIFrameElement: any, env: WebWor
           return;
         }
         if (!src.startsWith('about:')) {
+          let env = getIframeEnv(this);
+          env.$location$.href = src = resolveUrl(env, src, 'iframe');
+
+          // Check if this iframe URL should load on main thread without Partytown proxying
+          // This is useful for cross-origin iframes (like GTM's sw_iframe.html) that
+          // cannot be fetched via XHR due to CORS restrictions
+          const config = webWorkerCtx.$config$;
+          if (testIfMustLoadIframeOnMainThread(config, src)) {
+            // Set src directly on main thread iframe - it will load natively
+            setter(this, ['src'], src);
+            env.$isLoading$ = 0;
+            return;
+          }
+
           let xhr = new XMLHttpRequest();
           let xhrStatus: number;
-          let env = getIframeEnv(this);
 
-          env.$location$.href = src = resolveUrl(env, src, 'iframe');
           env.$isLoading$ = 1;
           env.$isSameOrigin$ = webWorkerCtx.$origin$ === env.$location$.origin;
 

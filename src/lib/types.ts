@@ -472,6 +472,16 @@ export interface PartytownConfig {
    * // Loads the `https://test.com/analytics.js` script on the main thread
    */
   loadScriptsOnMainThread?: (string | RegExp)[];
+  /**
+   * This array can be used to filter which iframes are loaded via
+   * Partytown and which you would like to load on the main thread.
+   * This is useful for cross-origin iframes (like GTM's sw_iframe.html)
+   * that cannot be proxied due to CORS restrictions.
+   *
+   * @example loadIframesOnMainThread:['https://www.googletagmanager.com/', /googletagmanager\.com/]
+   * // Loads iframes from googletagmanager.com on the main thread without proxying
+   */
+  loadIframesOnMainThread?: (string | RegExp)[];
   get?: GetHook;
   set?: SetHook;
   apply?: ApplyHook;
@@ -552,8 +562,12 @@ export interface PartytownConfig {
   nonce?: string;
 }
 
-export type PartytownInternalConfig = Omit<PartytownConfig, 'loadScriptsOnMainThread'> & {
+export type PartytownInternalConfig = Omit<
+  PartytownConfig,
+  'loadScriptsOnMainThread' | 'loadIframesOnMainThread'
+> & {
   loadScriptsOnMainThread?: ['regexp' | 'string', string][];
+  loadIframesOnMainThread?: ['regexp' | 'string', string][];
 };
 
 /**
